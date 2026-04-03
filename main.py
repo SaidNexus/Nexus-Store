@@ -101,6 +101,10 @@ def health_check():
         "version": "2.1.0"
     }
 
+@app.api_route("/ping".methods=["GET","HEAD"])
+def ping():
+    return {"status" : "ok"}
+
 
 # ============================================
 # إحصائيات عامة
