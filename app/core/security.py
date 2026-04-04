@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 # إعدادات JWT
 SECRET_KEY = "YOUR_SECRET_KEY_HERE_CHANGE_IN_PRODUCTION"  # غيرها في الإنتاج!
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 0.5
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 # إعداد تشفير كلمات المرور
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
