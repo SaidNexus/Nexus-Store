@@ -110,7 +110,6 @@ def create_refresh_token(user_id: int) -> str:
 
 
 def verify_refresh_token(refresh_token: str) -> Optional[dict]:
-    """Verify refresh token and return user if valid"""
     token_hash = hash_token(refresh_token)
 
     conn = get_db_connection()
@@ -130,31 +129,28 @@ def verify_refresh_token(refresh_token: str) -> Optional[dict]:
         
     if not result:
         return None
-        
-        # Check if token is revoked
-        if result["is_revoked"]:
-            return None
-        
-        # Check if token is expired (Postgres TIMESTAMP is already datetime)
-        expires_at = result["expires_at"]
-        if isinstance(expires_at, str):
-            expires_at = datetime.fromisoformat(expires_at)
-        
-        # Ensure timezone-aware comparison
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-            
-        now = datetime.now(timezone.utc)
-        
-        if now > expires_at:
-            return None
-        
-        # Check if user is active
-        if not result["is_active"]:
-            return None
-        
-        return result
 
+    # ✅ بقى هنا بره الـ if
+
+    if result["is_revoked"]:
+        return None
+
+    expires_at = result["expires_at"]
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at)
+
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    now = datetime.now(timezone.utc)
+
+    if now > expires_at:
+        return None
+
+    if not result["is_active"]:
+        return None
+
+    return result
 
 def revoke_refresh_token(refresh_token: str):
     """Revoke a refresh token"""
