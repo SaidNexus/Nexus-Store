@@ -414,3 +414,78 @@ def get_cart_count(current_user: dict = Depends(get_current_user)):
             "total_quantity": result['sm']
         }
     }
+
+# ============================================
+# 7. دمج السلة من localStorage (MERGE)
+# ============================================
+
+class CartMergeRequest(BaseModel):
+    items: List[CartItemCreate]
+
+
+@router.post("/merge")
+def merge_cart(
+    data: CartMergeRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """دمج السلة من localStorage مع سلة المستخدم"""
+
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cart_id = get_or_create_cart(current_user["id"], cursor)
+
+        for item in data.items:
+            # reuse نفس logic add_to_cart 👇
+
+            cursor.execute(
+                "SELECT id, stock_quantity, is_active FROM products WHERE id = %s",
+                (item.product_id,)
+            )
+            product = cursor.fetchone()
+
+            if not product or not product["is_active"]:
+                continue  # skip المنتج
+
+            if product["stock_quantity"] < item.quantity:
+                continue  # skip لو الكمية مش كفاية
+
+            cursor.execute(
+                "SELECT id, quantity FROM cart_items WHERE cart_id = %s AND product_id = %s",
+                (cart_id, item.product_id)
+            )
+            existing_item = cursor.fetchone()
+
+            if existing_item:
+                new_quantity = existing_item["quantity"] + item.quantity
+
+                if product["stock_quantity"] >= new_quantity:
+                    cursor.execute(
+                        "UPDATE cart_items SET quantity = %s WHERE id = %s",
+                        (new_quantity, existing_item["id"])
+                    )
+            else:
+                cursor.execute(
+                    "INSERT INTO cart_items (cart_id, product_id, quantity, added_at) VALUES (%s, %s, %s, CURRENT_TIMESTAMP)",
+                    (cart_id, item.product_id, item.quantity)
+                )
+
+        # update cart time
+        cursor.execute(
+            "UPDATE carts SET updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+            (cart_id,)
+        )
+
+        cart_details = get_cart_details(cart_id, cursor)
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+    return {
+        "status": "success",
+        "message": "Cart merged successfully",
+        "cart": cart_details
+    }
