@@ -4,29 +4,26 @@ from app.core.config import settings
 def get_refresh_token_cookie_params(max_age: int = 7 * 24 * 60 * 60) -> dict:
     """
     Returns the parameters for the refresh token cookie based on environment.
-    Uses 'prod' to match config.py's ENV naming convention.
+    Uses centralized settings.IS_PROD for consistency.
     """
-    is_production = getattr(settings, "ENV", "dev") == "prod"
+    is_production = settings.IS_PROD  # 🔥 FIXED
 
-    params = {
+    return {
         "key": "refresh_token",
         "httponly": True,
-        "secure": is_production,
-        "samesite": "none" if is_production else "lax",
+        "secure": is_production,                 # True in production
+        "samesite": "none" if is_production else "lax",  # 🔥 critical for cross-domain
         "path": "/",
         "max_age": max_age,
     }
-
-    return params
 
 
 def get_logout_cookie_params() -> dict:
     """
     Returns params to CLEAR the refresh token cookie.
-    Uses set_cookie with max_age=0 and an empty value — the only
-    reliable way to clear an HTTP-only cookie that respects SameSite/Secure.
+    Uses set_cookie with max_age=0 and an empty value.
     """
-    is_production = getattr(settings, "ENV", "dev") == "prod"
+    is_production = settings.IS_PROD  # 🔥 FIXED
 
     return {
         "key": "refresh_token",
@@ -45,7 +42,7 @@ def get_cors_settings() -> dict:
     """
     return {
         "allow_origins": settings.ALLOWED_ORIGINS,
-        "allow_credentials": True,
+        "allow_credentials": True,   # 🔥 important for cookies
         "allow_methods": ["*"],
         "allow_headers": ["*"],
     }
