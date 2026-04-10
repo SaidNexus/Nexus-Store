@@ -8,19 +8,29 @@ try:
 except ImportError:
     pass  # python-dotenv not installed — env vars must be set externally
 
+
 class Settings:
     def __init__(self):
-        # Environment Detection
+        # ---------------------------
+        # 🌍 Environment Detection
+        # ---------------------------
         self.ENV = os.getenv("ENV", "dev").lower()
-        self.IS_PROD = self.ENV == "prod"
-        
-        # CORS Configuration
+
+        # ✅ FIX: robust detection (supports prod / production / live)
+        self.IS_PROD = self.ENV in ["prod", "production", "live"]
+
+        # ---------------------------
+        # 🌐 CORS Configuration
+        # ---------------------------
         prod_origins = os.getenv(
-            "PROD_DOMAIN", 
+            "PROD_DOMAIN",
             "https://your-production-domain.com"
         ).split(",")
-        self.PROD_ALLOWED_ORIGINS: List[str] = [o.strip() for o in prod_origins if o.strip()]
-        
+
+        self.PROD_ALLOWED_ORIGINS: List[str] = [
+            o.strip() for o in prod_origins if o.strip()
+        ]
+
         self.DEV_ALLOWED_ORIGINS: List[str] = [
             "http://localhost:3000",
             "http://localhost:5173",
@@ -31,11 +41,9 @@ class Settings:
     @property
     def ALLOWED_ORIGINS(self) -> List[str]:
         if self.IS_PROD:
-            # Always include dev origins so local → prod debugging works.
-            # Browsers enforce SameSite/Secure independently of CORS,
-            # so this does NOT weaken cookie security in production.
+            # Include dev origins for debugging (safe with proper cookie settings)
             prod = [o for o in self.PROD_ALLOWED_ORIGINS if o != "*"]
-            return list(dict.fromkeys(prod + self.DEV_ALLOWED_ORIGINS))  # dedup, prod first
+            return list(dict.fromkeys(prod + self.DEV_ALLOWED_ORIGINS))
         return self.DEV_ALLOWED_ORIGINS
 
     @property
@@ -46,19 +54,19 @@ class Settings:
         if self.IS_PROD:
             return {
                 "httponly": True,
-                "secure": True,     
-                "samesite": "none",   
+                "secure": True,          # 🔥 required for SameSite=None
+                "samesite": "none",      # 🔥 FIX: allow cross-domain cookies
                 "path": "/",
-                "domain": None
+                "domain": None           # مهم تخليها None مع Render + Netlify
             }
-        
+
         # Development
-        else:
-            return {
-                "httponly": True,
-                "secure": False,   
-                "samesite": "lax",    
-                "path": "/"
-            }
+        return {
+            "httponly": True,
+            "secure": False,
+            "samesite": "lax",
+            "path": "/"
+        }
+
 
 settings = Settings()
