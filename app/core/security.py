@@ -10,7 +10,7 @@ import os
 # إعدادات JWT
 SECRET_KEY = os.getenv("SECRET_KEY", "YOUR_SECRET_KEY_HERE_CHANGE_IN_PRODUCTION")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 0.5
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 # إعداد تشفير كلمات المرور
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
